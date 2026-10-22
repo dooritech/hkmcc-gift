@@ -102,13 +102,13 @@
 
     // 구글 시트 데이터 불러오기
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv" || !GOOGLE_SHEET_CSV_URL) {
+        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheetshttps://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv" || !GOOGLE_SHEET_CSV_URL) {
             // 링크가 설정되지 않은 경우 가상 테스트 데이터 출력
             allData = [
                 {pid: "1", fid: "FID-0001", name: "김명숙", baptism: "루시아", phone: "010-1234-5678", address: "1st St", city: "산호세", zipcode: "95131", region: "1구역", ban: "1반", group: "성가대", participation: "참석", note: "샘플데이터"}
             ];
             renderTable(allData);
-            document.getElementById('timerStatus').innerText = "⚠️ 구글 시트 CSV 링크를 설정해주세요!";
+            document.getElementById('timerStatus').innerText = "⚠️ 구글 시트ddssf CSV 링크를 설정해주세요!";
             return;
         }
 
