@@ -62,7 +62,7 @@
 
 <script>
     // ⚠️ 아래 빈칸(" ") 사이에 1단계에서 복사한 구글 스프레드시트 웹에 게시(CSV) 링크를 넣어주세요.
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv";
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv";
 
     let allData = [];
     let countdown = 5;
@@ -102,7 +102,7 @@
 
     // 구글 시트 데이터 불러오기
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheetshttps://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv" || !GOOGLE_SHEET_CSV_URL) {
+        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv" || !GOOGLE_SHEET_CSV_URL) {
             // 링크가 설정되지 않은 경우 가상 테스트 데이터 출력
             allData = [
                 {pid: "1", fid: "FID-0001", name: "김명숙", baptism: "루시아", phone: "010-1234-5678", address: "1st St", city: "산호세", zipcode: "95131", region: "1구역", ban: "1반", group: "성가대", participation: "참석", note: "샘플데이터"}
