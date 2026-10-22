@@ -65,14 +65,14 @@
 
 <script>
     // ⚠️ 2단계에서 발급받은 '웹 앱 URL'을 아래 따옴표 안에 넣어주세요.
-    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxB91ZJx9NyphD2GXGIdGBLlOgsQZXqgyG0-4zRVjJzVtkrNU4eULOVtB5IRZs2w_68Ng/exec";
+    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLWB4abm9WEj1n4qWE9xoDnsWG7yoKwfvyKNGb0SZIKNAvUP4oRpMcvUXoVxIhv39U_w/exec";
 
     let allData = [];
     let countdown = 5;
 
     // 구글 앱스 스크립트를 통해 최신 데이터 가져오기
     function fetchSheetData() {
-        if(GOOGLE_APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbxB91ZJx9NyphD2GXGIdGBLlOgsQZXqgyG0-4zRVjJzVtkrNU4eULOVtB5IRZs2w_68Ng/exec")) {
+        if(GOOGLE_APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbwLWB4abm9WEj1n4qWE9xoDnsWG7yoKwfvyKNGb0SZIKNAvUP4oRpMcvUXoVxIhv39U_w/exec")) {
             document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 웹 앱 URL을 설정해주세요!";
             return;
         }
