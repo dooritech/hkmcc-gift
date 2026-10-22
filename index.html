@@ -124,7 +124,7 @@
 
     // 구글 시트 데이터 로드
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "YOUR_GOOGLE_CSV_URL_HERE" || !GOOGLE_SHEET_CSV_URL) {
+        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv" || !GOOGLE_SHEET_CSV_URL) {
             document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 구글 시트 CSV 링크를 설정해주세요!";
             return;
         }
