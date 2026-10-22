@@ -68,7 +68,7 @@
 
 <script>
     // ⚠️ 아래 빈칸(" ") 사이에 구글 시트 '웹에 게시'에서 복사한 CSV 링크를 넣어주세요.
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv";
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv";
 
     let allData = [];
     let countdown = 5;
@@ -124,7 +124,7 @@
 
     // 구글 시트 데이터 로드
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv" || !GOOGLE_SHEET_CSV_URL) {
+        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv" || !GOOGLE_SHEET_CSV_URL) {
             document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 구글 시트 CSV 링크를 설정해주세요!";
             return;
         }
