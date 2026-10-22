@@ -20,7 +20,6 @@
         .btn { padding: 8px 14px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn:hover { background: #27ae60; }
         
-        /* 선물 수령 버튼 스타일 */
         .gift-btn { padding: 6px 12px; background-color: #e67e22; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .gift-btn:hover { background-color: #d35400; }
         .gift-btn.done { background-color: #95a5a6; cursor: default; }
@@ -31,16 +30,14 @@
 <body>
 
 <div class="container">
-    <h1>🎁 본당 신자 실시간 검색 및 선물 수령 시스템</h1>
+    <h1>🎁 본당 신자 실시간 검색 및 선물 수령 시스템 (공유 모드)</h1>
     <div class="header-bar">
         <div class="status-bar" id="timerStatus">⏱️ 5초 후 데이터 자동 갱신 대기 중...</div>
         <button class="btn" onclick="fetchSheetData()">지금 새로고침</button>
     </div>
 
-    <!-- 조건 1: 이름 또는 전화번호 검색란 -->
     <input type="text" id="searchInput" class="search-box" placeholder="🔍 검색할 '이름' 또는 '전화번호'를 입력하세요..." onkeyup="filterTable()">
 
-    <!-- 조건 2: 화면 아래에 전체 명단 및 선물 수령 버튼 표시 -->
     <div class="table-container">
         <table id="dataTable">
             <thead>
@@ -67,99 +64,58 @@
 </div>
 
 <script>
-    // ⚠️ 아래 빈칸(" ") 사이에 구글 시트 '웹에 게시'에서 복사한 CSV 링크를 넣어주세요.
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv";
+    // ⚠️ 2단계에서 발급받은 '웹 앱 URL'을 아래 따옴표 안에 넣어주세요.
+    const GOOGLE_APPS_SCRIPT_URL = "Yhttps://script.google.com/macros/s/AKfycbyIvsjANnSS4BQuxezMLvikAkXrJhf42SPhhPX1bLSjDCrEi8ItI2F6BfT7tmOqLDVWzg/exec";
 
     let allData = [];
     let countdown = 5;
-    // 로컬 수령 상태 저장소 (실제 운영 시 구글 시트 또는 로컬스토리지 연동)
-    let giftReceivedSet = new Set(JSON.parse(localStorage.getItem('giftReceivedSet') || '[]'));
 
-    // CSV 파싱
-    function parseCSV(text) {
-        let lines = text.split("\n");
-        let result = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-            let line = lines[i].trim();
-            if (!line) continue;
-
-            let row = [];
-            let inQuotes = false;
-            let currentValue = "";
-
-            for (let j = 0; j < line.length; j++) {
-                let char = line[j];
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    row.push(currentValue.trim().replace(/^"|"$/g, ''));
-                    currentValue = "";
-                } else {
-                    currentValue += char;
-                }
-            }
-            row.push(currentValue.trim().replace(/^"|"$/g, ''));
-
-            if(row.length >= 2 && row[2]) {
-                result.push({
-                    pid: row[0] || '',
-                    fid: row[1] || '',
-                    name: row[2] || '',
-                    baptism: row[3] || '',
-                    phone: row[4] || '',
-                    address: row[5] || '',
-                    city: row[6] || '',
-                    zipcode: row[7] || '',
-                    region: row[8] || '',
-                    ban: row[9] || '',
-                    group: row[10] || '',
-                    participation: row[11] || '',
-                    note: row[12] || ''
-                });
-            }
-        }
-        return result;
-    }
-
-    // 구글 시트 데이터 로드
+    // 구글 앱스 스크립트를 통해 최신 데이터 가져오기
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv" || !GOOGLE_SHEET_CSV_URL) {
-            document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 구글 시트 CSV 링크를 설정해주세요!";
+        if(GOOGLE_APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbyIvsjANnSS4BQuxezMLvikAkXrJhf42SPhhPX1bLSjDCrEi8ItI2F6BfT7tmOqLDVWzg/exec")) {
+            document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 웹 앱 URL을 설정해주세요!";
             return;
         }
 
-        fetch(GOOGLE_SHEET_CSV_URL)
-            .then(response => response.text())
+        fetch(GOOGLE_APPS_SCRIPT_URL)
+            .then(response => response.json())
             .then(data => {
-                allData = parseCSV(data);
+                allData = data;
                 filterTable();
                 countdown = 5;
                 document.getElementById('timerStatus').innerText = `🔄 데이터 최신화 완료! (다음 갱신: 5초 후)`;
             })
             .catch(error => {
                 console.error('데이터 로드 실패:', error);
-                document.getElementById('timerStatus').innerText = `❌ 데이터 로드 실패 (네트워크/링크 확인)`;
+                document.getElementById('timerStatus').innerText = `❌ 데이터 로드 실패 (네트워크/URL 확인)`;
             });
     }
 
-    // 선물 수령 처리 함수
-    function toggleGift(pid, name) {
-        if(giftReceivedSet.has(pid)) {
-            if(confirm(`${name} 님의 선물 수령 상태를 '미수령'으로 취소하시겠습니까?`)) {
-                giftReceivedSet.delete(pid);
-            }
-        } else {
-            if(confirm(`${name} 님의 선물 수령을 확인하시겠습니까?`)) {
-                giftReceivedSet.add(pid);
-            }
-        }
-        // 브라우저에 수령 상태 저장
-        localStorage.setItem('giftReceivedSet', JSON.stringify([...giftReceivedSet]));
-        filterTable();
+    // 선물 수령 버튼 클릭 시 구글 시트에 즉시 반영
+    function toggleGift(pid, name, currentStatus) {
+        let newStatus = (currentStatus === "완료") ? "" : "완료";
+        let confirmMsg = newStatus === "완료" ? `${name} 님의 선물 수령을 완료 처리하시겠습니까?` : `${name} 님의 수령 상태를 취소하시겠습니까?`;
+
+        if(!confirm(confirmMsg)) return;
+
+        let updateUrl = `${GOOGLE_APPS_SCRIPT_URL}?action=update&pid=${pid}&status=${encodeURI(newStatus)}`;
+
+        document.getElementById('timerStatus').innerText = "⏳ 서버에 반영 중...";
+
+        fetch(updateUrl)
+            .then(response => response.json())
+            .then(res => {
+                if(res.result === "success") {
+                    fetchSheetData(); // 즉시 새로고침하여 반영된 결과 동기화
+                }
+            })
+            .catch(err => {
+                alert("반영 실패! 네트워크를 확인해주세요.");
+                fetchSheetData();
+            });
     }
 
-    // 테이블 출력
+    // 테이블 렌더링
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
@@ -170,50 +126,53 @@
         }
 
         data.forEach(item => {
-            const isReceived = giftReceivedSet.has(item.pid);
+            // 구글 시트의 '선물수령' 열 값 확인 (없거나 빈칸이면 미수령, "완료"면 수령완료)
+            let giftVal = item["선물수령"] || "";
+            let isReceived = (giftVal === "완료");
+
             const row = document.createElement('tr');
-            
             row.innerHTML = `
                 <td>
-                    <button class="gift-btn ${isReceived ? 'done' : ''}" onclick="toggleGift('${item.pid}', '${item.name}')">
+                    <button class="gift-btn ${isReceived ? 'done' : ''}" onclick="toggleGift('${item.PID}', '${item.이름}', '${giftVal}')">
                         ${isReceived ? '✓ 수령완료' : '🎁 선물수령'}
                     </button>
                 </td>
-                <td>${item.pid}</td>
-                <td>${item.fid}</td>
-                <td><strong>${item.name}</strong></td>
-                <td>${item.baptism}</td>
-                <td>${item.phone}</td>
-                <td>${item.region}</td>
-                <td>${item.ban}</td>
-                <td>${item.group}</td>
-                <td>${item.participation}</td>
+                <td>${item.PID || ''}</td>
+                <td>${item.FID || ''}</td>
+                <td><strong>${item.이름 || ''}</strong></td>
+                <td>${item.세례명 || ''}</td>
+                <td>${item.phone || ''}</td>
+                <td>${item.구역 || ''}</td>
+                <td>${item.반 || ''}</td>
+                <td>${item.단체명 || ''}</td>
+                <td>${item.구역참가 || ''}</td>
                 <td>
                     <span class="${isReceived ? 'gift-status-done' : 'gift-status-wait'}">
                         ${isReceived ? '수령 완료' : '미수령'}
                     </span>
                 </td>
-                <td>${item.note}</td>
+                <td>${item.참고 || ''}</td>
             `;
             tbody.appendChild(row);
         });
     }
 
-    // 이름 및 전화번호 필터링
+    // 검색 필터링
     function filterTable() {
         const query = document.getElementById('searchInput').value.trim().toLowerCase();
         if(!query) {
             renderTable(allData);
             return;
         }
-        const filtered = allData.filter(item => 
-            (item.name && item.name.toLowerCase().includes(query)) || 
-            (item.phone && item.phone.toLowerCase().includes(query))
-        );
+        const filtered = allData.filter(item => {
+            let name = String(item.이름 || "").toLowerCase();
+            let phone = String(item.phone || "").toLowerCase();
+            return name.includes(query) || phone.includes(query);
+        });
         renderTable(filtered);
     }
 
-    // 5초 자동 갱신 타이머
+    // 5초 자동 갱신
     setInterval(() => {
         countdown--;
         if(countdown <= 0) {
@@ -226,7 +185,7 @@
         }
     }, 1000);
 
-    // 최초 데이터 로드
+    // 초기 실행
     fetchSheetData();
 </script>
 
