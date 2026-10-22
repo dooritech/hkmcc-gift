@@ -72,10 +72,7 @@
 
     // 구글 앱스 스크립트를 통해 최신 데이터 가져오기
     function fetchSheetData() {
-        if(GOOGLE_APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbzWGFwHmxGmIgabIlJxZ65cQbQKYi88NClS1AI1RuZcPbc6GsLG_8F_e02hTKO-QyZqxg/exec")) {
-            document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 웹 앱 URL을 설정해주세요!";
-            return;
-        }
+        
 
         fetch(GOOGLE_APPS_SCRIPT_URL)
             .then(response => response.json())
