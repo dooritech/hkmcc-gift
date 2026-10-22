@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>본당 신자 실시간 검색 시스템</title>
+    <title>본당 신자 실시간 검색 및 선물 수령 시스템</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h1 { font-size: 24px; color: #2c3e50; margin-bottom: 10px; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .search-box { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #3498db; border-radius: 6px; box-sizing: border-box; }
@@ -19,12 +19,19 @@
         tr:hover { background-color: #f1f1f1; }
         .btn { padding: 8px 14px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn:hover { background: #27ae60; }
+        
+        /* 선물 수령 버튼 스타일 */
+        .gift-btn { padding: 6px 12px; background-color: #e67e22; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .gift-btn:hover { background-color: #d35400; }
+        .gift-btn.done { background-color: #95a5a6; cursor: default; }
+        .gift-status-done { color: #27ae60; font-weight: bold; }
+        .gift-status-wait { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🙏 구글 시트 실시간 신자 검색 시스템</h1>
+    <h1>🎁 본당 신자 실시간 검색 및 선물 수령 시스템</h1>
     <div class="header-bar">
         <div class="status-bar" id="timerStatus">⏱️ 5초 후 데이터 자동 갱신 대기 중...</div>
         <button class="btn" onclick="fetchSheetData()">지금 새로고침</button>
@@ -33,82 +40,92 @@
     <!-- 조건 1: 이름 또는 전화번호 검색란 -->
     <input type="text" id="searchInput" class="search-box" placeholder="🔍 검색할 '이름' 또는 '전화번호'를 입력하세요..." onkeyup="filterTable()">
 
-    <!-- 조건 2: 화면 아래에 전체 명단 표시 테이블 -->
+    <!-- 조건 2: 화면 아래에 전체 명단 및 선물 수령 버튼 표시 -->
     <div class="table-container">
         <table id="dataTable">
             <thead>
                 <tr>
+                    <th>선물 수령 확인</th>
                     <th>PID</th>
                     <th>FID</th>
                     <th>이름</th>
                     <th>세례명</th>
                     <th>전화번호</th>
-                    <th>주소</th>
-                    <th>도시</th>
-                    <th>우편번호</th>
                     <th>구역</th>
                     <th>반</th>
                     <th>단체명</th>
                     <th>구역참가</th>
+                    <th>수령 상태</th>
                     <th>참고</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr><td colspan="13" style="padding: 30px; color: #7f8c8d;">데이터를 불러오는 중입니다...</td></tr>
+                <tr><td colspan="12" style="padding: 30px; color: #7f8c8d;">데이터를 불러오는 중입니다...</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // ⚠️ 아래 빈칸(" ") 사이에 1단계에서 복사한 구글 스프레드시트 웹에 게시(CSV) 링크를 넣어주세요.
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv";
+    // ⚠️ 아래 빈칸(" ") 사이에 구글 시트 '웹에 게시'에서 복사한 CSV 링크를 넣어주세요.
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv";
 
     let allData = [];
     let countdown = 5;
+    // 로컬 수령 상태 저장소 (실제 운영 시 구글 시트 또는 로컬스토리지 연동)
+    let giftReceivedSet = new Set(JSON.parse(localStorage.getItem('giftReceivedSet') || '[]'));
 
-    // CSV 데이터를 파싱하는 함수
+    // CSV 파싱
     function parseCSV(text) {
         let lines = text.split("\n");
         let result = [];
-        let headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
-
+        
         for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            let currentline = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(",");
-            
-            // 간단하게 쉼표 기준으로 파싱
-            let cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-            if(cols.length >= 2) {
+            let line = lines[i].trim();
+            if (!line) continue;
+
+            let row = [];
+            let inQuotes = false;
+            let currentValue = "";
+
+            for (let j = 0; j < line.length; j++) {
+                let char = line[j];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    row.push(currentValue.trim().replace(/^"|"$/g, ''));
+                    currentValue = "";
+                } else {
+                    currentValue += char;
+                }
+            }
+            row.push(currentValue.trim().replace(/^"|"$/g, ''));
+
+            if(row.length >= 2 && row[2]) {
                 result.push({
-                    pid: cols[0] || '',
-                    fid: cols[1] || '',
-                    name: cols[2] || '',
-                    baptism: cols[3] || '',
-                    phone: cols[4] || '',
-                    address: cols[5] || '',
-                    city: cols[6] || '',
-                    zipcode: cols[7] || '',
-                    region: cols[8] || '',
-                    ban: cols[9] || '',
-                    group: cols[10] || '',
-                    participation: cols[11] || '',
-                    note: cols[12] || ''
+                    pid: row[0] || '',
+                    fid: row[1] || '',
+                    name: row[2] || '',
+                    baptism: row[3] || '',
+                    phone: row[4] || '',
+                    address: row[5] || '',
+                    city: row[6] || '',
+                    zipcode: row[7] || '',
+                    region: row[8] || '',
+                    ban: row[9] || '',
+                    group: row[10] || '',
+                    participation: row[11] || '',
+                    note: row[12] || ''
                 });
             }
         }
         return result;
     }
 
-    // 구글 시트 데이터 불러오기
+    // 구글 시트 데이터 로드
     function fetchSheetData() {
-        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?gid=0&single=true&output=csv" || !GOOGLE_SHEET_CSV_URL) {
-            // 링크가 설정되지 않은 경우 가상 테스트 데이터 출력
-            allData = [
-                {pid: "1", fid: "FID-0001", name: "김명숙", baptism: "루시아", phone: "010-1234-5678", address: "1st St", city: "산호세", zipcode: "95131", region: "1구역", ban: "1반", group: "성가대", participation: "참석", note: "샘플데이터"}
-            ];
-            renderTable(allData);
-            document.getElementById('timerStatus').innerText = "⚠️ 구글 시트ddssf CSV 링크를 설정해주세요!";
+        if(GOOGLE_SHEET_CSV_URL === "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdpEMA-KH-_WJkuTxTlC_eTYVrW1mHDY9D2WeHEYO97yv24Wxg5LbFqJRvWJG_OzeAo306RChskzAj/pub?output=csv" || !GOOGLE_SHEET_CSV_URL) {
+            document.getElementById('timerStatus').innerText = "⚠️ 코드 내에 구글 시트 CSV 링크를 설정해주세요!";
             return;
         }
 
@@ -116,48 +133,73 @@
             .then(response => response.text())
             .then(data => {
                 allData = parseCSV(data);
-                filterTable(); // 현재 검색어 유지한 채 테이블 갱신
+                filterTable();
                 countdown = 5;
                 document.getElementById('timerStatus').innerText = `🔄 데이터 최신화 완료! (다음 갱신: 5초 후)`;
             })
             .catch(error => {
                 console.error('데이터 로드 실패:', error);
-                document.getElementById('timerStatus').innerText = `❌ 데이터 로드 실패 (네트워크 확인)`;
+                document.getElementById('timerStatus').innerText = `❌ 데이터 로드 실패 (네트워크/링크 확인)`;
             });
     }
 
-    // 화면에 테이블 그리기
+    // 선물 수령 처리 함수
+    function toggleGift(pid, name) {
+        if(giftReceivedSet.has(pid)) {
+            if(confirm(`${name} 님의 선물 수령 상태를 '미수령'으로 취소하시겠습니까?`)) {
+                giftReceivedSet.delete(pid);
+            }
+        } else {
+            if(confirm(`${name} 님의 선물 수령을 확인하시겠습니까?`)) {
+                giftReceivedSet.add(pid);
+            }
+        }
+        // 브라우저에 수령 상태 저장
+        localStorage.setItem('giftReceivedSet', JSON.stringify([...giftReceivedSet]));
+        filterTable();
+    }
+
+    // 테이블 출력
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         
         if(data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="13" style="padding: 20px; color: #7f8c8d;">검색 결과가 없습니다.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="12" style="padding: 20px; color: #7f8c8d;">검색 결과가 없습니다.</td></tr>`;
             return;
         }
 
         data.forEach(item => {
+            const isReceived = giftReceivedSet.has(item.pid);
             const row = document.createElement('tr');
+            
             row.innerHTML = `
+                <td>
+                    <button class="gift-btn ${isReceived ? 'done' : ''}" onclick="toggleGift('${item.pid}', '${item.name}')">
+                        ${isReceived ? '✓ 수령완료' : '🎁 선물수령'}
+                    </button>
+                </td>
                 <td>${item.pid}</td>
                 <td>${item.fid}</td>
                 <td><strong>${item.name}</strong></td>
                 <td>${item.baptism}</td>
                 <td>${item.phone}</td>
-                <td>${item.address}</td>
-                <td>${item.city}</td>
-                <td>${item.zipcode}</td>
                 <td>${item.region}</td>
                 <td>${item.ban}</td>
                 <td>${item.group}</td>
                 <td>${item.participation}</td>
+                <td>
+                    <span class="${isReceived ? 'gift-status-done' : 'gift-status-wait'}">
+                        ${isReceived ? '수령 완료' : '미수령'}
+                    </span>
+                </td>
                 <td>${item.note}</td>
             `;
             tbody.appendChild(row);
         });
     }
 
-    // 조건 1: 이름 또는 전화번호 실시간 필터링 검색
+    // 이름 및 전화번호 필터링
     function filterTable() {
         const query = document.getElementById('searchInput').value.trim().toLowerCase();
         if(!query) {
@@ -171,7 +213,7 @@
         renderTable(filtered);
     }
 
-    // 조건 3: 5초마다 자동 데이터 업데이트 타이머
+    // 5초 자동 갱신 타이머
     setInterval(() => {
         countdown--;
         if(countdown <= 0) {
@@ -184,7 +226,7 @@
         }
     }, 1000);
 
-    // 최초 실행 시 데이터 로드
+    // 최초 데이터 로드
     fetchSheetData();
 </script>
 
