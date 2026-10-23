@@ -31,7 +31,7 @@
 <body>
 
 <div class="container">
-    <h1>🎁 본당 신자 실시간 검색 및 선물 수령 시스템 (가구별 지급)</h1>
+    <h1>🎁 본당 신자 실시간 검색 및 선물 수령 시스템 (가구별 연동)</h1>
     <div class="header-bar">
         <div class="status-bar" id="timerStatus">⏱️ 5초 후 데이터 자동 갱신 대기 중...</div>
         <button class="btn" onclick="fetchSheetData()">지금 새로고침</button>
@@ -73,8 +73,7 @@
 
     // 구글 앱스 스크립트를 통해 최신 데이터 가져오기
     function fetchSheetData() {
-        
-
+       
         fetch(GOOGLE_APPS_SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
@@ -113,7 +112,7 @@
             });
     }
 
-    // 테이블 렌더링 (동일 FID 중 첫 사람에게만 버튼 부여)
+    // 테이블 렌더링 (동일 FID 가구원 전체 수령 상태 연동)
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
@@ -123,14 +122,26 @@
             return;
         }
 
-        let processedFids = new Set(); // 이미 버튼이 생성된 FID를 기록하는 집합
+        // 1단계: 전체 데이터(allData)를 순회하며 어떤 FID가 수령 완료되었는지 파악
+        let receivedFids = new Set();
+        allData.forEach(item => {
+            let fid = String(item.FID || "").trim();
+            let giftVal = item["선물수령"] || "";
+            if (fid && giftVal === "완료") {
+                receivedFids.add(fid);
+            }
+        });
+
+        let processedFids = new Set(); // 화면에 버튼이 이미 생성된 FID를 체크
 
         data.forEach(item => {
             let fid = String(item.FID || "").trim();
             let giftVal = item["선물수령"] || "";
-            let isReceived = (giftVal === "완료");
+            
+            // 🔥 핵심: 해당 가구(FID) 중 하나라도 완료되었거나 현재 행이 완료 상태면 모든 세대원을 수령 완료로 처리
+            let isReceived = (giftVal === "완료") || (fid !== "" && receivedFids.has(fid));
 
-            // 가정당 한 개만 버튼 생성 (FID가 존재하고 이미 처리된 FID라면 버튼 생략)
+            // 가정당 한 개만 버튼 생성 (동일 FID 중 첫 사람에게만 버튼 부여)
             let canShowButton = true;
             if (fid !== "") {
                 if (processedFids.has(fid)) {
@@ -147,7 +158,7 @@
                         <button class="gift-btn ${isReceived ? 'done' : ''}" onclick="toggleGift('${item.PID}', '${item.이름}', '${giftVal}')">
                             ${isReceived ? '✓ 수령완료' : '🎁 선물수령'}
                         </button>
-                    ` : `<span class="family-text">세대원 (대표자 수령)</span>`}
+                    ` : `<span class="family-text">세대원 (대표자 연동)</span>`}
                 </td>
                 <td>${item.PID || ''}</td>
                 <td>${item.FID || ''}</td>
