@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성당 교적 및 신자 등록 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        catholic: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            gold: '#d97706',
+                            warm: '#faf8f5'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .cross-bg {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 cross-bg">
+
+    <!-- Header / Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-catholic-800 text-amber-300 flex items-center justify-center font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-cross"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">가톨릭 본당 교적 등록</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">Parish Member Registration & Management System</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="openModal('googleSheetModal')" class="px-3 py-1.5 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium flex items-center space-x-1.5 transition shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="hidden sm:inline">구글 시트 연동 설정</span>
+                    <span class="sm:hidden">시트 연동</span>
+                </button>
+                <button onclick="resetToSampleData()" class="px-3 py-1.5 text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>샘플 초기화
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Top Banner Notice -->
+        <div class="bg-gradient-to-r from-catholic-900 to-catholic-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+            <div class="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-10 text-9xl text-amber-200 pointer-events-none">
+                <i class="fa-solid fa-church"></i>
+            </div>
+            <div class="relative z-10 max-w-3xl">
+                <span class="inline-block px-3 py-1 bg-amber-400 text-catholic-900 font-bold text-xs rounded-full mb-2">
+                    <i class="fa-solid fa-heart mr-1"></i>평화를 빕니다
+                </span>
+                <h2 class="text-xl sm:text-2xl font-bold mb-2">새로운 교우님의 등록을 환영합니다</h2>
+                <p class="text-slate-200 text-sm leading-relaxed">
+                    본당 공동체의 일원이 되신 것을 축하드립니다. 본 등록 시스템을 통해 신규 교적 신청 및 구역/반 배정 저장이 가능하며, 등록된 정보는 교적 관리 시스템 및 구글 시트에 실시간으로 연동할 수 있습니다.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section Grid: Registration Form & Stats -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Registration Form (8 Cols) -->
+            <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <i class="fa-solid fa-user-plus text-catholic-700"></i>
+                        <span>신자 등록 신청서</span>
+                    </h3>
+                    <span class="text-xs text-slate-400">* 필수 입력 항목</span>
+                </div>
+
+                <form id="registrationForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    
+                    <!-- Household Option Selection -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">세대 ID (FID) 설정 *</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-center p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-catholic-500 transition">
+                                <input type="radio" name="householdType" value="new" checked onchange="toggleHouseholdInput()" class="w-4 h-4 text-catholic-700 focus:ring-catholic-500">
+                                <div class="ml-3">
+                                    <span class="block text-sm font-semibold text-slate-800">신규 세대 생성</span>
+                                    <span class="block text-xs text-slate-500">새로운 FID 번호를 자동 생성합니다</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-catholic-500 transition">
+                                <input type="radio" name="householdType" value="existing" onchange="toggleHouseholdInput()" class="w-4 h-4 text-catholic-700 focus:ring-catholic-500">
+                                <div class="ml-3">
+                                    <span class="block text-sm font-semibold text-slate-800">기존 세대 추가</span>
+                                    <span class="block text-xs text-slate-500">가족의 기존 FID 번호를 입력합니다</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Household ID Input Field (Conditional) -->
+                        <div id="existingFidContainer" class="hidden pt-2">
+                            <label for="fidInput" class="block text-xs font-medium text-slate-700 mb-1">기존 세대 ID (FID)</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="fidInput" placeholder="예: FID-1002" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                                <button type="button" onclick="verifyFid()" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300 transition whitespace-nowrap">
+                                    세대 조회
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Information -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="memberName" class="block text-xs font-medium text-slate-700 mb-1">이름 *</label>
+                            <input type="text" id="memberName" required placeholder="홍길동" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                        </div>
+                        <div>
+                            <label for="baptismalName" class="block text-xs font-medium text-slate-700 mb-1">세례명 *</label>
+                            <input type="text" id="baptismalName" required placeholder="베드로" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="phone" class="block text-xs font-medium text-slate-700 mb-1">전화번호 *</label>
+                            <input type="tel" id="phone" required placeholder="010-1234-5678" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                        </div>
+                        <div>
+                            <label for="gender" class="block text-xs font-medium text-slate-700 mb-1">성별 / 세대주 관계</label>
+                            <select id="gender" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500 bg-white">
+                                <option value="세대주">세대주</option>
+                                <option value="배우자">배우자</option>
+                                <option value="자녀">자녀</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Zone & Sub-zone -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="zone" class="block text-xs font-medium text-slate-700 mb-1">소속 구역 *</label>
+                            <select id="zone" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500 bg-white">
+                                <option value="">구역을 선택하세요</option>
+                                <option value="노스산호세">노스산호세</option>
+                                <option value="라이트하우스">라이트하우스</option>
+                                <option value="로스알토스">로스알토스</option>
+                                <option value="밀피타스">밀피타스</option>
+                                <option value="사라토가캠벨">사라토가캠벨</option>
+                                <option value="사우스카운티">사우스카운티</option>
+                                <option value="산타클라라">산타클라라</option>
+                                <option value="센트럴산호세">센트럴산호세</option>
+                                <option value="써니베일">써니베일</option>
+                                <option value="알마덴">알마덴</option>
+                                <option value="웨스트산호세">웨스트산호세</option>
+                                <option value="웨스트쿠퍼티노">웨스트쿠퍼티노</option>
+                                <option value="이스트쿠퍼티노">이스트쿠퍼티노</option>
+                                <option value="캠브리안">캠브리안</option>
+                                <option value="팔로알토">팔로알토</option>
+                                <option value="프리몬트">프리몬트</option>
+                                <option value="기타/타지역">기타/타지역</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="subZone" class="block text-xs font-medium text-slate-700 mb-1">소속 반 *</label>
+                            <input type="text" id="subZone" required placeholder="예: 1반 또는 2반" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                        </div>
+                    </div>
+
+                    <!-- Address & Zipcode -->
+                    <div class="space-y-3">
+                        <div>
+                            <label for="address" class="block text-xs font-medium text-slate-700 mb-1">도로명 주소 *</label>
+                            <input type="text" id="address" required placeholder="1234 Main St" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="city" class="block text-xs font-medium text-slate-700 mb-1">도시 (City)</label>
+                                <input type="text" id="city" placeholder="San Jose" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                            </div>
+                            <div>
+                                <label for="zipcode" class="block text-xs font-medium text-slate-700 mb-1">우편번호 (Zipcode)</label>
+                                <input type="text" id="zipcode" placeholder="95134" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Remarks / Special Info -->
+                    <div>
+                        <label for="remarks" class="block text-xs font-medium text-slate-700 mb-1">비고 및 참고사항</label>
+                        <select id="remarks" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-catholic-500 bg-white">
+                            <option value="일반교우">일반교우</option>
+                            <option value="구역장">구역장</option>
+                            <option value="반장">반장</option>
+                            <option value="전입교우">전입교우 (타본당)</option>
+                            <option value="신비교우">신비교우 / 예비신자</option>
+                            <option value="쉬는교우">쉬는교우 (냉담)</option>
+                        </select>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100">
+                        <button type="button" onclick="clearForm()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition">
+                            입력 취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-catholic-800 hover:bg-catholic-900 text-white rounded-lg text-sm font-medium transition shadow-md flex items-center space-x-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>신자 등록 제출</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Side Dashboard & Quick Info (4 Cols) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Quick Stats Box -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h3 class="text-md font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-catholic-700"></i>
+                        <span>등록 상태 현황</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-catholic-50 p-4 rounded-xl border border-catholic-100 text-center">
+                            <span class="block text-2xl font-bold text-catholic-800" id="statTotalMembers">0</span>
+                            <span class="text-xs text-slate-600">총 등록 교우</span>
+                        </div>
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-center">
+                            <span class="block text-2xl font-bold text-amber-700" id="statTotalHouseholds">0</span>
+                            <span class="text-xs text-slate-600">등록 세대수 (FID)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guidance & Notice Card -->
+                <div class="bg-amber-50/60 rounded-2xl border border-amber-200/80 p-6 space-y-3">
+                    <div class="flex items-center space-x-2 text-amber-900 font-bold text-sm">
+                        <i class="fa-solid fa-circle-info text-amber-600"></i>
+                        <span>교적 등록 안내</span>
+                    </div>
+                    <ul class="text-xs text-amber-900/80 space-y-2 list-disc list-inside leading-relaxed">
+                        <li><strong>PID (개인 식별번호)</strong>는 등록 시 자동으로 생성됩니다.</li>
+                        <li>같은 가구에 살고 있는 가족의 경우 <strong>"기존 세대 추가"</strong>를 선택하여 동일한 FID를 부여받으세요.</li>
+                        <li>구역 및 반 배정이 확실하지 않은 경우 구역장님 혹은 사무실로 문의하시기 바랍니다.</li>
+                    </ul>
+                </div>
+
+                <!-- Google Sheet Integration Status -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">구글 시트 연동 상태</span>
+                        <span id="sheetStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                            미연동 (로컬 저장)
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500">
+                        현재 등록된 데이터는 웹 브라우저(LocalStorage)에 저장되며, 구글 앱스 스크립트 웹앱 URL을 등록하면 실시간 구글 시트 저장 기능이 활성화됩니다.
+                    </p>
+                    <button onclick="openModal('googleSheetModal')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                        연동 설정 열기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registered Members Table & Filter Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            
+            <!-- Table Header Controls -->
+            <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <i class="fa-solid fa-list-check text-catholic-700"></i>
+                        <span>최근 등록 교우 명단</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">실시간으로 등록된 본당 교우 명단입니다.</p>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Zone Filter -->
+                    <select id="filterZone" onchange="renderTable()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-catholic-500 bg-white">
+                        <option value="">전체 구역 보기</option>
+                        <option value="노스산호세">노스산호세</option>
+                        <option value="라이트하우스">라이트하우스</option>
+                        <option value="로스알토스">로스알토스</option>
+                        <option value="밀피타스">밀피타스</option>
+                        <option value="사라토가캠벨">사라토가캠벨</option>
+                        <option value="산타클라라">산타클라라</option>
+                        <option value="센트럴산호세">센트럴산호세</option>
+                        <option value="써니베일">써니베일</option>
+                        <option value="알마덴">알마덴</option>
+                        <option value="웨스트산호세">웨스트산호세</option>
+                        <option value="팔로알토">팔로알토</option>
+                        <option value="프리몬트">프리몬트</option>
+                    </select>
+
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="이름/세례명/전화번호 검색" class="pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-catholic-500 w-48 sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+
+                    <!-- Export CSV Button -->
+                    <button onclick="exportToCSV()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition flex items-center space-x-1">
+                        <i class="fa-solid fa-download"></i>
+                        <span>CSV 다운로드</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                            <th class="py-3 px-4">PID</th>
+                            <th class="py-3 px-4">FID</th>
+                            <th class="py-3 px-4">이름 (세례명)</th>
+                            <th class="py-3 px-4">구역 / 반</th>
+                            <th class="py-3 px-4">전화번호</th>
+                            <th class="py-3 px-4">주소</th>
+                            <th class="py-3 px-4">구분 / 비고</th>
+                            <th class="py-3 px-4 text-right">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTableBody" class="divide-y divide-slate-100 text-sm">
+                        <!-- Dynamic Rows Here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden py-12 text-center text-slate-400">
+                <i class="fa-regular fa-folder-open text-4xl mb-2"></i>
+                <p class="text-sm">등록된 교우 정보가 없거나 검색 조건과 일치하지 않습니다.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Google Sheet Integration Modal -->
+    <div id="googleSheetModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="p-5 bg-catholic-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-file-csv text-amber-300 text-lg"></i>
+                    <h3 class="font-bold text-md">구글 시트(Google Sheets) 연동 설정</h3>
+                </div>
+                <button onclick="closeModal('googleSheetModal')" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4 text-sm text-slate-600">
+                <p class="leading-relaxed">
+                    구글 드라이브의 Google Sheets와 연동하면 본 양식에서 제출된 데이터가 즉시 구글 시트에 행으로 자동 추가됩니다.
+                </p>
+
+                <!-- Steps -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                    <h4 class="font-bold text-slate-800 text-sm">연동 방법 안내:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-700">
+                        <li>구글 시트를 생성하고 첫 행에 헤더를 작성합니다: <code class="bg-slate-200 px-1 rounded">PID, FID, Name, BaptismalName, Phone, Zone, SubZone, Address, City, Zipcode, Remarks, Date</code></li>
+                        <li>상단 메뉴에서 <strong>확장 프로그램 &gt; Apps Script</strong>를 클릭합니다.</li>
+                        <li>아래 코드 복사 후 붙여넣고 <strong>[배포] &gt; [새 배포]</strong>를 선택합니다.</li>
+                        <li>유형: <strong>웹 앱</strong> / 액세스 권한: <strong>모든 사용자(Anyone)</strong>로 설정하여 배포 후 웹 앱 URL을 복사합니다.</li>
+                    </ol>
+                </div>
+
+                <!-- Apps Script Code Snippet -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-slate-700">Google Apps Script 코드를 복사하세요:</span>
+                        <button onclick="copyAppsScript()" class="text-xs text-catholic-700 hover:underline flex items-center space-x-1">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>코드 복사</span>
+                        </button>
+                    </div>
+                    <pre class="bg-slate-900 text-emerald-400 p-3 rounded-lg text-[11px] font-mono overflow-x-auto leading-tight" id="scriptCode">
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    
+    sheet.appendRow([
+      data.pid,
+      data.fid,
+      data.name,
+      data.baptismalName,
+      data.phone,
+      data.zone,
+      data.subZone,
+      data.address,
+      data.city,
+      data.zipcode,
+      data.remarks,
+      new Date().toLocaleString('ko-KR')
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({"result": "success"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({"result": "error", "error": err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+                </div>
+
+                <!-- Web App URL Input -->
+                <div class="pt-2">
+                    <label for="webAppUrl" class="block text-xs font-semibold text-slate-700 mb-1">배포된 Apps Script 웹 앱 URL</label>
+                    <input type="url" id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-catholic-500">
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
+                <button onclick="closeModal('googleSheetModal')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300 transition">
+                    취소
+                </button>
+                <button onclick="saveGoogleSheetUrl()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition">
+                    저장 및 연동
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMessage" class="text-sm font-medium">처리되었습니다.</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Sample Initial Data based on Parish Schema
+        const sampleMembers = [
+            {
+                pid: "PID-2026001",
+                fid: "FID-1001",
+                name: "김철수",
+                baptismalName: "요한",
+                phone: "010-2345-6789",
+                zone: "노스산호세",
+                subZone: "1반",
+                address: "100 North 1st St",
+                city: "San Jose",
+                zipcode: "95112",
+                remarks: "구역장",
+                createdAt: "2026-10-20"
+            },
+            {
+                pid: "PID-2026002",
+                fid: "FID-1001",
+                name: "이영희",
+                baptismalName: "마리아",
+                phone: "010-8765-4321",
+                zone: "노스산호세",
+                subZone: "1반",
+                address: "100 North 1st St",
+                city: "San Jose",
+                zipcode: "95112",
+                remarks: "배우자",
+                createdAt: "2026-10-20"
+            },
+            {
+                pid: "PID-2026003",
+                fid: "FID-1002",
+                name: "박준형",
+                baptismalName: "안드레아",
+                phone: "010-3344-5566",
+                zone: "팔로알토",
+                subZone: "2반",
+                address: "450 Serra Mall",
+                city: "Stanford",
+                zipcode: "94305",
+                remarks: "일반교우",
+                createdAt: "2026-10-21"
+            },
+            {
+                pid: "PID-2026004",
+                fid: "FID-1003",
+                name: "최수지",
+                baptismalName: "체칠리아",
+                phone: "010-9988-7766",
+                zone: "써니베일",
+                subZone: "3반",
+                address: "700 El Camino Real",
+                city: "Sunnyvale",
+                zipcode: "94087",
+                remarks: "전입교우",
+                createdAt: "2026-10-22"
+            }
+        ];
+
+        let members = [];
+        let googleSheetUrl = "";
+
+        // Initialize Application State
+        window.onload = function() {
+            const storedMembers = localStorage.getItem('catholic_members');
+            if (storedMembers) {
+                members = JSON.parse(storedMembers);
+            } else {
+                members = [...sampleMembers];
+                saveToLocalStorage();
+            }
+
+            googleSheetUrl = localStorage.getItem('catholic_sheets_url') || "";
+            if (googleSheetUrl) {
+                document.getElementById('webAppUrl').value = googleSheetUrl;
+                updateSheetBadge(true);
+            }
+
+            renderTable();
+            updateStats();
+        };
+
+        // Render Table Rows with Search & Filter
+        function renderTable() {
+            const tbody = document.getElementById('memberTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filterZone = document.getElementById('filterZone').value;
+
+            tbody.innerHTML = '';
+
+            const filteredMembers = members.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(searchVal) || 
+                                      m.baptismalName.toLowerCase().includes(searchVal) ||
+                                      m.phone.includes(searchVal) ||
+                                      m.pid.toLowerCase().includes(searchVal) ||
+                                      m.fid.toLowerCase().includes(searchVal);
+                
+                const matchesZone = filterZone === "" || m.zone === filterZone;
+
+                return matchesSearch && matchesZone;
+            });
+
+            if (filteredMembers.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filteredMembers.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition text-slate-700 border-b border-slate-100";
+                
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-xs text-catholic-800 font-semibold">${m.pid}</td>
+                    <td class="py-3 px-4 font-mono text-xs text-amber-700 font-medium">${m.fid}</td>
+                    <td class="py-3 px-4 font-medium text-slate-900">
+                        ${m.name} <span class="text-xs text-slate-500 font-normal">(${m.baptismalName})</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-catholic-50 text-catholic-800 border border-catholic-100">
+                            ${m.zone} ${m.subZone ? m.subZone : ''}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-xs font-mono">${m.phone}</td>
+                    <td class="py-3 px-4 text-xs max-w-xs truncate" title="${m.address}, ${m.city} ${m.zipcode}">
+                        ${m.address}${m.city ? ', ' + m.city : ''}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded text-[11px] font-medium ${getRemarkBadgeColor(m.remarks)}">
+                            ${m.remarks || '일반'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="deleteMember('${m.pid}')" class="text-xs text-red-500 hover:text-red-700 p-1 transition" title="삭제">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Helper Badge Stylings
+        function getRemarkBadgeColor(remark) {
+            switch(remark) {
+                case '구역장': return 'bg-amber-100 text-amber-800 border border-amber-200';
+                case '반장': return 'bg-blue-100 text-blue-800 border border-blue-200';
+                case '쉬는교우': return 'bg-slate-200 text-slate-700';
+                case '전입교우': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                default: return 'bg-slate-100 text-slate-600';
+            }
+        }
+
+        // Handle Household Type Radio Toggle
+        function toggleHouseholdInput() {
+            const householdType = document.querySelector('input[name="householdType"]:checked').value;
+            const container = document.getElementById('existingFidContainer');
+            if (householdType === 'existing') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        // Verify Existing FID
+        function verifyFid() {
+            const fidInput = document.getElementById('fidInput').value.trim();
+            if (!fidInput) {
+                showToast("세대 ID(FID)를 입력해 주세요.", "error");
+                return;
+            }
+            const found = members.filter(m => m.fid.toUpperCase() === fidInput.toUpperCase());
+            if (found.length > 0) {
+                showToast(`확인됨: [${found[0].name}] 세대주의 가구입니다. (${found.length}명 등록됨)`, "success");
+            } else {
+                showToast("해당 FID로 등록된 세대를 찾을 수 없습니다.", "error");
+            }
+        }
+
+        // Submit New Member Registration
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const householdType = document.querySelector('input[name="householdType"]:checked').value;
+            let fid = "";
+
+            if (householdType === 'existing') {
+                fid = document.getElementById('fidInput').value.trim();
+                if (!fid) {
+                    showToast("기존 세대 ID(FID)를 입력해주세요.", "error");
+                    return;
+                }
+            } else {
+                fid = generateFID();
+            }
+
+            const newMember = {
+                pid: generatePID(),
+                fid: fid,
+                name: document.getElementById('memberName').value.trim(),
+                baptismalName: document.getElementById('baptismalName').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                zone: document.getElementById('zone').value,
+                subZone: document.getElementById('subZone').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                zipcode: document.getElementById('zipcode').value.trim(),
+                remarks: document.getElementById('remarks').value,
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+
+            members.unshift(newMember);
+            saveToLocalStorage();
+            renderTable();
+            updateStats();
+
+            // Sync to Google Sheets if WebApp URL exists
+            if (googleSheetUrl) {
+                sendToGoogleSheet(newMember);
+            }
+
+            showToast(`${newMember.name} (${newMember.baptismalName}) 교우님이 성공적으로 등록되었습니다.`, "success");
+            clearForm();
+        }
+
+        // Generate Unique Identifiers
+        function generatePID() {
+            const nextNum = members.length + 1001;
+            return `PID-2026${nextNum}`;
+        }
+
+        function generateFID() {
+            const existingFids = members.map(m => parseInt(m.fid.replace('FID-', ''))).filter(n => !isNaN(n));
+            const maxFid = existingFids.length > 0 ? Math.max(...existingFids) : 1000;
+            return `FID-${maxFid + 1}`;
+        }
+
+        // Clear Form Fields
+        function clearForm() {
+            document.getElementById('registrationForm').reset();
+            document.querySelector('input[name="householdType"][value="new"]').checked = true;
+            toggleHouseholdInput();
+        }
+
+        // Delete Member Entry
+        function deleteMember(pid) {
+            if (confirm("정말로 이 교우 정보를 삭제하시겠습니까?")) {
+                members = members.filter(m => m.pid !== pid);
+                saveToLocalStorage();
+                renderTable();
+                updateStats();
+                showToast("삭제 완료되었습니다.", "success");
+            }
+        }
+
+        // Save LocalStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('catholic_members', JSON.stringify(members));
+        }
+
+        // Reset to Default Sample Data
+        function resetToSampleData() {
+            if (confirm("샘플 데이터로 초기화하시겠습니까? 기존 등록 데이터가 대체됩니다.")) {
+                members = [...sampleMembers];
+                saveToLocalStorage();
+                renderTable();
+                updateStats();
+                showToast("샘플 데이터로 초기화되었습니다.", "success");
+            }
+        }
+
+        // Update Dashboard Analytics
+        function updateStats() {
+            document.getElementById('statTotalMembers').innerText = members.length;
+            const uniqueHouseholds = new Set(members.map(m => m.fid)).size;
+            document.getElementById('statTotalHouseholds').innerText = uniqueHouseholds;
+        }
+
+        // Send Data to Google Sheet Apps Script
+        function sendToGoogleSheet(memberData) {
+            fetch(googleSheetUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(memberData)
+            })
+            .then(() => {
+                showToast("구글 시트 전송 요청이 완료되었습니다.", "success");
+            })
+            .catch(err => {
+                console.error(err);
+                showToast("구글 시트 전송 실패. URL을 확인하세요.", "error");
+            });
+        }
+
+        // Save Google Sheets Web App URL
+        function saveGoogleSheetUrl() {
+            const url = document.getElementById('webAppUrl').value.trim();
+            googleSheetUrl = url;
+            localStorage.setItem('catholic_sheets_url', url);
+            updateSheetBadge(!!url);
+            closeModal('googleSheetModal');
+            showToast(url ? "구글 시트 URL이 설정되었습니다." : "구글 시트 연동이 해제되었습니다.", "success");
+        }
+
+        function updateSheetBadge(isConnected) {
+            const badge = document.getElementById('sheetStatusBadge');
+            if (isConnected) {
+                badge.className = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200";
+                badge.innerText = "구글 시트 연동 중";
+            } else {
+                badge.className = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600";
+                badge.innerText = "미연동 (로컬 저장)";
+            }
+        }
+
+        // Export Data to CSV
+        function exportToCSV() {
+            if (members.length === 0) {
+                showToast("내보낼 데이터가 없습니다.", "error");
+                return;
+            }
+
+            const headers = ["PID", "FID", "Name", "BaptismalName", "Phone", "Zone", "SubZone", "Address", "City", "Zipcode", "Remarks", "CreatedAt"];
+            const rows = members.map(m => [
+                m.pid, m.fid, m.name, m.baptismalName, m.phone, m.zone, m.subZone, `"${m.address}"`, m.city, m.zipcode, m.remarks, m.createdAt
+            ]);
+
+            let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `성당_교적명단_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Copy Code Snippet Helper
+        function copyAppsScript() {
+            const code = document.getElementById('scriptCode').innerText;
+            const tempElem = document.createElement('textarea');
+            tempElem.value = code;
+            document.body.appendChild(tempElem);
+            tempElem.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempElem);
+            showToast("Apps Script 코드가 클립보드에 복사되었습니다.", "success");
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+            }, 10);
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        // Toast Notification Helper
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.innerText = message;
+            if (type === "error") {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-red-400";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
